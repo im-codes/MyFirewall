@@ -23,6 +23,26 @@ function Disable-WindowsUpdate {
     Write-Host "✅ Windows Update berhasil dinonaktifkan.`n" -ForegroundColor Green
 }
 
+function Enable-WindowsUpdate {
+    Write-Host "`n🔧 Mengaktifkan kembali Windows Update..." -ForegroundColor Cyan
+
+    # Set service ke manual dan jalankan kembali
+    Set-Service -Name wuauserv -StartupType Manual
+    Start-Service -Name wuauserv
+
+    # Hapus firewall rule jika ada
+    if (Get-NetFirewallRule -DisplayName "Block_WindowsUpdate" -ErrorAction SilentlyContinue) {
+        Remove-NetFirewallRule -DisplayName "Block_WindowsUpdate"
+    }
+
+    # Aktifkan kembali update otomatis di registry
+    Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" `
+        -Name "NoAutoUpdate" -ErrorAction SilentlyContinue
+
+    Write-Host "✅ Windows Update berhasil diaktifkan kembali.`n" -ForegroundColor Green
+}
+
+
 function Show-Menu {
     Clear-Host
     Write-Host "========== Windows Update Controller ==========" -ForegroundColor Cyan
@@ -40,7 +60,7 @@ function Show-Menu {
             Write-Host "Pilihan tidak valid. Coba lagi." -ForegroundColor Red
             Pause
             Show-Menu
-        }
+        }        
     }
 }
 
