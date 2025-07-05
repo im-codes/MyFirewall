@@ -1,68 +1,77 @@
-function Disable-WindowsUpdate {
-    Write-Host "`n🔧 Menonaktifkan Windows Update..." -ForegroundColor Yellow
+#Set Execution Policy to the instance
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+function NonactiveUpdate {
+    Write-Output "# Nonactivating Windows Update..."
 
-    # Hentikan dan disable service
+    # Stop and disable service
+    Write-Output "- Stoping and disabling service"
     Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
     Set-Service -Name wuauserv -StartupType Disabled
 
-    # Blokir koneksi update via firewall
+    # - Block conection on Firewall
+    Write-Output "- Blocking conection on Firewall"
     if (-not (Get-NetFirewallRule -DisplayName "Block_WindowsUpdate" -ErrorAction SilentlyContinue)) {
         New-NetFirewallRule -DisplayName "Block_WindowsUpdate" `
             -Direction Outbound `
             -RemoteAddress 20.190.128.0/18, 40.126.0.0/18 `
             -Action Block `
             -Profile Any `
-            -Description "Blokir akses ke server Windows Update"
+            -Description "Block Windows Update Server"
     }
+    
 
-    # Nonaktifkan update otomatis via registry
+    # Nonactiving automatic windows update on registry
+    Write-Output "- Nonactiving automatic windows update on registry"
     New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Force | Out-Null
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" `
         -Name "NoAutoUpdate" -Value 1 -Type DWord
 
-    Write-Host "✅ Windows Update berhasil dinonaktifkan.`n" -ForegroundColor Green
+    Write-Output "@ Windows Update Succesfully Nonactivated."
 }
 
-function Enable-WindowsUpdate {
-    Write-Host "`n🔧 Mengaktifkan kembali Windows Update..." -ForegroundColor Cyan
+function ActiveUpdate {
+    Write-Output "# Activing Windows Update..."
 
-    # Set service ke manual dan jalankan kembali
+    # Set service to manual and start it
+    Write-Output "- Set service to manual and start it"
     Set-Service -Name wuauserv -StartupType Manual
     Start-Service -Name wuauserv
 
-    # Hapus firewall rule jika ada
+    # Deleting Firewall rule if excist
+    Write-Output "- Deleting Firewall rule if excist"
     if (Get-NetFirewallRule -DisplayName "Block_WindowsUpdate" -ErrorAction SilentlyContinue) {
         Remove-NetFirewallRule -DisplayName "Block_WindowsUpdate"
     }
 
-    # Aktifkan kembali update otomatis di registry
+    # Activing automatic windows update on registry
+    Write-Output "- Activing automatic windows update on registry"
     Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" `
         -Name "NoAutoUpdate" -ErrorAction SilentlyContinue
 
-    Write-Host "✅ Windows Update berhasil diaktifkan kembali.`n" -ForegroundColor Green
+    Write-Output "@ Windows Update Succesfully Activated." 
+    
 }
 
-
 function Show-Menu {
-    Clear-Host
+    #Clear-Host
     Write-Host "========== Windows Update Controller ==========" -ForegroundColor Cyan
-    Write-Host "1. Nonaktifkan Windows Update"
-    Write-Host "2. Aktifkan Windows Update"
-    Write-Host "0. Keluar"
+    Write-Host "1. Nonactivate Windows Update"
+    Write-Host "2. Activate Windows Update"
+    Write-Host "0. Exit"
     Write-Host "==============================================="
 
-    $choice = Read-Host "Masukkan pilihan Anda"
+    $choice = Read-Host "Enter The Command:"
     switch ($choice) {
-        '1' { Disable-WindowsUpdate; Pause; Show-Menu }
-        '2' { Enable-WindowsUpdate; Pause; Show-Menu }
-        '0' { Write-Host "Keluar..."; exit }
+        '1' { NonactiveUpdate; Pause; Show-Menu }
+        '2' { ActiveUpdate; Pause; Show-Menu }
+        '0' { Write-Host "Exit..."; exit }
         default {
-            Write-Host "Pilihan tidak valid. Coba lagi." -ForegroundColor Red
+            Write-Host "Unvalid Command. Retry." -ForegroundColor Red
             Pause
             Show-Menu
         }        
     }
 }
 
-# Jalankan menu saat script dibuka
+# Show menu function
 Show-Menu
